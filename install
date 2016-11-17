@@ -1,0 +1,5 @@
+#! /bin/bash
+#mvn clean install -D skipTests
+onos-app 127.0.0.1 uninstall org.netarchlab.statefulp4
+onos-app 127.0.0.1 install target/statefulp4-1.8.0-SNAPSHOT.oar
+onos-app 127.0.0.1 activate org.netarchlab.statefulp4
