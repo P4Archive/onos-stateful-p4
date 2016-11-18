@@ -26,6 +26,7 @@ import org.onosproject.bmv2.api.context.Bmv2DefaultConfiguration;
 import org.onosproject.bmv2.api.context.Bmv2DeviceContext;
 import org.onosproject.bmv2.api.runtime.Bmv2ExtensionSelector;
 import org.onosproject.bmv2.api.runtime.Bmv2ExtensionTreatment;
+import org.onosproject.net.Device;
 import org.onosproject.net.DeviceId;
 import org.onosproject.net.Host;
 import org.onosproject.net.PortNumber;
@@ -37,7 +38,12 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;i
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.HashMap;
 
 
 import org.onosproject.net.flow.TrafficTreatment;
@@ -138,7 +144,7 @@ public class AppComponent extends AbstractUpgradableFabricApp implements Statefu
         TrafficSelector.Builder selectorBuilder = DefaultTrafficSelector.builder();
 
         treatmentBuilder.extension(buildStateTransferTreatment(nextState), defaultDeviceId);
-        selectorBuilder.extension(buildStateTransferSlector(targetId, curState, targetId), defaultDeviceId);
+        selectorBuilder.extension(buildStateTransferSlector(targetId, curState, trigger), defaultDeviceId);
 
         try {
             FlowRule rule = flowRuleBuilder(defaultDeviceId, StatefulP4Interpreter.STATE_TRANSFER_TABLE)
@@ -169,15 +175,18 @@ public class AppComponent extends AbstractUpgradableFabricApp implements Statefu
     private void installState(TrafficSelector trafficSelector, String actionName, int targetId, int registerId) {
         TrafficTreatment.Builder treatmentBuilder = DefaultTrafficTreatment.builder();
         try {
-            FlowRule rule = flowRuleBuilder(defaultDeviceId, StatefulP4Interpreter.ACTION_TABLE)
+            FlowRule rule = flowRuleBuilder(defaultDeviceId, StatefulP4Interpreter.STATE_TABLE)
                     .withSelector(trafficSelector)
                     .withTreatment(treatmentBuilder
-                            .extension(buildGetStateTreatment(actionName, (short) targetId, (short) registerId), defaultDeviceId)
+                            .extension(
+                                    buildGetStateTreatment(actionName, (short) targetId, (short) registerId),
+                                    defaultDeviceId
+                            )
                             .build())
                     .build();
             installFlowRules(Collections.singleton(rule));
         } catch (Exception e) {
-
+            log.info(e.toString());
         }
     }
 
@@ -186,16 +195,10 @@ public class AppComponent extends AbstractUpgradableFabricApp implements Statefu
     static {
         TARGET_ID_MAP.put("sfw", 1);
         TARGET_ID_MAP.put("slb", 2);
-
         ACTION_MAP.put("sfw", StatefulP4Interpreter.GET_STATE_WITH_TCP_FLAG);
         ACTION_MAP.put("slb", StatefulP4Interpreter.GET_SATTE_WITH_NOTHING);
     }
 
-    /**
-     * TCP Stateful Firewall
-     * 0 + SYN --> 1
-     * 1 + SYN --> ACK
-     * */
     private void startStatefulFirewallService() {
         int targetId = TARGET_ID_MAP.get("slb");
     }
@@ -221,6 +224,14 @@ public class AppComponent extends AbstractUpgradableFabricApp implements Statefu
 
     @Override
     public int startService(String service) {
+
+        if (defaultDeviceId == null) {
+            for (Device device:deviceService.getAvailableDevices()) {
+                defaultDeviceId = device.id();
+                break;
+            }
+        }
+
         if (service.equals("sfw")) {
             startStatefulFirewallService();
         } else if (service.equals("slb")) {

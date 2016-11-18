@@ -37,7 +37,7 @@ public class StatefulP4Command extends AbstractShellCommand {
     private static final String STOP = "stop";
     private static final String BIND = "bind";
 
-    private int registerId = 1;
+    private int registerId = 0;
 
     @Argument(index = 0, name = "opertion", description = "Operations: start, stop,",
             required = true, multiValued = false)

@@ -59,8 +59,14 @@ public class StatefulP4Interpreter implements Bmv2Interpreter {
             Criterion.Type.IN_PORT, "standard_metadata.ingress_port",
             Criterion.Type.ETH_DST, "ethernet.dstAddr",
             Criterion.Type.ETH_SRC, "ethernet.srcAddr",
-            Criterion.Type.ETH_TYPE, "ethernet.etherType",
-            Criterion.Type.IPV4_DST, "ipv4.dstAddr");
+            Criterion.Type.ETH_TYPE, "ethernet.etherType");
+    static {
+        CRITERION_TYPE_MAP.putIfAbsent(Criterion.Type.IPV4_DST, "ipv4.dstAddr");
+        CRITERION_TYPE_MAP.putIfAbsent(Criterion.Type.IPV4_SRC, "ipv4.srcAddr");
+        CRITERION_TYPE_MAP.putIfAbsent(Criterion.Type.IP_PROTO, "ipv4.protocol");
+        CRITERION_TYPE_MAP.putIfAbsent(Criterion.Type.TCP_DST, "tcp.dstPort");
+        CRITERION_TYPE_MAP.putIfAbsent(Criterion.Type.TCP_SRC, "tcp.srcPort");
+    }
 
     private static final String DROP = "_drop";
     private static final String ALERT = "alert";
