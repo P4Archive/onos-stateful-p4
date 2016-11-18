@@ -37,10 +37,8 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.ArrayList;i
+
 
 import org.onosproject.net.flow.TrafficTreatment;
 import org.onosproject.net.flow.TrafficSelector;
@@ -168,21 +166,53 @@ public class AppComponent extends AbstractUpgradableFabricApp implements Statefu
         }
     }
 
-    private void startStatefulFirewallService() {
+    private void installState(TrafficSelector trafficSelector, String actionName, int targetId, int registerId) {
+        TrafficTreatment.Builder treatmentBuilder = DefaultTrafficTreatment.builder();
+        try {
+            FlowRule rule = flowRuleBuilder(defaultDeviceId, StatefulP4Interpreter.ACTION_TABLE)
+                    .withSelector(trafficSelector)
+                    .withTreatment(treatmentBuilder
+                            .extension(buildGetStateTreatment(actionName, (short) targetId, (short) registerId), defaultDeviceId)
+                            .build())
+                    .build();
+            installFlowRules(Collections.singleton(rule));
+        } catch (Exception e) {
 
+        }
+    }
+
+    private static final Map<String, Integer> TARGET_ID_MAP = new HashMap<>();
+    private static final Map<String, String> ACTION_MAP = new HashMap<>();
+    static {
+        TARGET_ID_MAP.put("sfw", 1);
+        TARGET_ID_MAP.put("slb", 2);
+
+        ACTION_MAP.put("sfw", StatefulP4Interpreter.GET_STATE_WITH_TCP_FLAG);
+        ACTION_MAP.put("slb", StatefulP4Interpreter.GET_SATTE_WITH_NOTHING);
+    }
+
+    /**
+     * TCP Stateful Firewall
+     * 0 + SYN --> 1
+     * 1 + SYN --> ACK
+     * */
+    private void startStatefulFirewallService() {
+        int targetId = TARGET_ID_MAP.get("slb");
     }
 
     private void startLoadBalancingService() {
-        installStateTransfer((short) 1, (short) 0, (byte) 0, (byte) 1);
-        installStateTransfer((short) 1, (short) 0, (byte) 1, (byte) 2);
-        installStateTransfer((short) 1, (short) 0,  (byte) 2, (byte) 1);
+        int targetId = TARGET_ID_MAP.get("slb");
+
+        installStateTransfer((short) targetId, (short) 0, (byte) 0, (byte) 1);
+        installStateTransfer((short) targetId, (short) 0, (byte) 1, (byte) 2);
+        installStateTransfer((short) targetId, (short) 0,  (byte) 2, (byte) 1);
 
         TrafficTreatment treatment
-                = DefaultTrafficTreatment.builder().setOutput(PortNumber.portNumber(1)).build();
+                = DefaultTrafficTreatment.builder().setOutput(PortNumber.portNumber(2)).build();
 
         installAction((byte) 1, treatment);
 
-        treatment = DefaultTrafficTreatment.builder().setOutput(PortNumber.portNumber(2)).build();
+        treatment = DefaultTrafficTreatment.builder().setOutput(PortNumber.portNumber(3)).build();
         installAction((byte) 2, treatment);
 
         treatment = DefaultTrafficTreatment.emptyTreatment();
@@ -206,5 +236,15 @@ public class AppComponent extends AbstractUpgradableFabricApp implements Statefu
         return 0;
     }
 
-
+    @Override
+    public int bindService(String service, int registerId, TrafficSelector trafficSelector) {
+        int targetId = TARGET_ID_MAP.get(service);
+        String actionName = ACTION_MAP.get(service);
+        try {
+            installState(trafficSelector, actionName, targetId, registerId);
+        } catch (Exception e) {
+            return 1;
+        }
+        return 0;
+    }
 }
