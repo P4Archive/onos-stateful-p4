@@ -19,9 +19,8 @@ import org.apache.karaf.shell.commands.Argument;
 import org.apache.karaf.shell.commands.Command;
 import org.apache.karaf.shell.commands.Option;
 import org.neatrchlab.service.StatefulP4Service;
-import org.onlab.packet.IpPrefix;
-import org.onlab.packet.MacAddress;
-import org.onlab.packet.TpPort;
+import org.onlab.packet.IpAddress;
+import org.onosproject.bmv2.api.runtime.Bmv2ExtensionSelector;
 import org.onosproject.cli.AbstractShellCommand;
 import org.onosproject.net.flow.DefaultTrafficSelector;
 import org.onosproject.net.flow.TrafficSelector;
@@ -43,41 +42,33 @@ public class StatefulP4Command extends AbstractShellCommand {
             required = true, multiValued = false)
     private String operation;
 
-    @Argument(index = 1, name = "service", description = "Operations: show, install, uninstall, update",
+    @Argument(index = 1, name = "service", description = "Stateful data plane service: Sateful Firwall (sfw) and Stateful LoadBalancer (slb)",
             required = true, multiValued = false)
     private String service;
 
-    @Option(name = "-d", aliases = "--dl_dst",
-            description = "Data link source address", required = false, multiValued = false)
-    private String dlDst;
-
-    @Option(name = "-s", aliases = "--dl_src",
-            description = "Data link source address", required = false, multiValued = false)
-    private String dlSrc;
-
-    @Option(name = "-t", aliases = "--dl_type",
-            description = "Data link source address", required = false, multiValued = false)
-    private String dlType;
-
-    @Option(name = "-D", aliases = "--ip_dst",
-            description = "Data link source address", required = false, multiValued = false)
+    @Option(name = "-d", aliases = "--ip_dst",
+            description = "IP source address", required = false, multiValued = false)
     private String ipDst;
 
-    @Option(name = "-S", aliases = "--ip_src",
-            description = "Data link source address", required = false, multiValued = false)
+    @Option(name = "-s", aliases = "--ip_src",
+            description = "IP source address", required = false, multiValued = false)
     private String ipSrc;
 
     @Option(name = "-p", aliases = "--ip_proto",
-            description = "Data link source address", required = false, multiValued = false)
+            description = "IP protocol", required = false, multiValued = false)
     private String ipProto;
 
-    @Option(name = "-a", aliases = "--tcp_src",
-            description = "Data link source address", required = false, multiValued = false)
+    @Option(name = "-D", aliases = "--tcp_src",
+            description = "TCP source port", required = false, multiValued = false)
     private String tcpSrc;
 
-    @Option(name = "-b", aliases = "--ip_dst",
-            description = "Data link source address", required = false, multiValued = false)
+    @Option(name = "-S", aliases = "--tcp_dst",
+            description = "TCP destination port", required = false, multiValued = false)
     private String tcpDst;
+
+    @Option(name = "-o", aliases = "--output",
+            description = "Default output port", required = false, multiValued = false)
+    private String port;
 
     private int getNewRegisterId() {
         return registerId++;
@@ -91,46 +82,26 @@ public class StatefulP4Command extends AbstractShellCommand {
         } else if (operation.equals(STOP)) {
             p4Service.stopService(service);
         } else if (operation.equals(BIND)) {
-            p4Service.bindService(service, getNewRegisterId(), getTrafficSelector());
+            p4Service.bindService(service, getNewRegisterId(), getTrafficSelector(), port);
         } else {
             print(operation + " is not a valid operation");
         }
     }
 
     private TrafficSelector getTrafficSelector() {
+        StatefulP4Service p4Service = getService(StatefulP4Service.class);
         TrafficSelector.Builder builder = DefaultTrafficSelector.builder();
+        Bmv2ExtensionSelector.Builder extesionBuilder = Bmv2ExtensionSelector.builder();
 
-        if (dlDst != null) {
-            builder.matchEthDst(MacAddress.valueOf(dlDst));
-        }
+        extesionBuilder.forConfiguration(AppComponent.STATEFUL_CONFIGURATION);
 
-        if (dlSrc != null) {
-            builder.matchEthSrc(MacAddress.valueOf(dlSrc));
-        }
+        extesionBuilder.matchExact("ipv4", "dstAddr", IpAddress.valueOf(ipDst).toOctets());
+        extesionBuilder.matchExact("ipv4", "srcAddr", IpAddress.valueOf(ipSrc).toOctets());
+        extesionBuilder.matchExact("ipv4", "protocol", Byte.valueOf(ipProto));
+        extesionBuilder.matchExact("tcp", "dstPort", (short) ((int) Integer.parseInt(tcpDst)));
+        extesionBuilder.matchExact("tcp", "srcPort", (short) ((int) Integer.parseInt(tcpSrc)));
 
-        if (dlType != null) {
-            builder.matchEthType(Short.parseShort(dlType));
-        }
-
-        if (ipDst != null) {
-            builder.matchIPDst(IpPrefix.valueOf(ipDst));
-        }
-
-        if (ipSrc != null) {
-            builder.matchIPSrc(IpPrefix.valueOf(ipSrc));
-        }
-
-        if (ipProto != null) {
-            builder.matchIPProtocol(Byte.parseByte(ipProto));
-        }
-
-        if (tcpDst != null) {
-            builder.matchTcpDst(TpPort.tpPort(Integer.parseInt(tcpDst)));
-        }
-
-        if (tcpSrc != null) {
-            builder.matchTcpSrc(TpPort.tpPort(Integer.parseInt(tcpSrc)));
-        }
+        builder.extension(extesionBuilder.build(), p4Service.getDefaultDeviceId());
 
         return builder.build();
     }

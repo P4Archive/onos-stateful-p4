@@ -55,19 +55,6 @@ public class StatefulP4Interpreter implements Bmv2Interpreter {
     protected static final String NEXT_STATE = "next_state";
     protected static final String TRIGGER = "trigger";
 
-    private static final ImmutableBiMap<Criterion.Type, String> CRITERION_TYPE_MAP = ImmutableBiMap.of(
-            Criterion.Type.IN_PORT, "standard_metadata.ingress_port",
-            Criterion.Type.ETH_DST, "ethernet.dstAddr",
-            Criterion.Type.ETH_SRC, "ethernet.srcAddr",
-            Criterion.Type.ETH_TYPE, "ethernet.etherType");
-    static {
-        CRITERION_TYPE_MAP.putIfAbsent(Criterion.Type.IPV4_DST, "ipv4.dstAddr");
-        CRITERION_TYPE_MAP.putIfAbsent(Criterion.Type.IPV4_SRC, "ipv4.srcAddr");
-        CRITERION_TYPE_MAP.putIfAbsent(Criterion.Type.IP_PROTO, "ipv4.protocol");
-        CRITERION_TYPE_MAP.putIfAbsent(Criterion.Type.TCP_DST, "tcp.dstPort");
-        CRITERION_TYPE_MAP.putIfAbsent(Criterion.Type.TCP_SRC, "tcp.srcPort");
-    }
-
     private static final String DROP = "_drop";
     private static final String ALERT = "alert";
     private static final String SEND_TO_CPU = "send_to_cpu";
@@ -78,6 +65,8 @@ public class StatefulP4Interpreter implements Bmv2Interpreter {
     protected static final String GET_STATE_WITH_IP_ID = "get_state_with_ip_id";
     protected static final String GET_STATE_WITH_IP_TOS = "get_state_with_ip_tos";
     protected static final String GET_SATTE_WITH_NOTHING = "get_state_with_nothing";
+    protected static final String GET_STATE_WITH_TCP_SRC = "get_state_with_tcp_src_port";
+    protected static final String GET_STATE_WITH_TCP_DST = "get_state_with_tcp_dst_port";
 
     private static final String PORT = "port";
 
@@ -89,7 +78,12 @@ public class StatefulP4Interpreter implements Bmv2Interpreter {
 
     @Override
     public ImmutableBiMap<Criterion.Type, String> criterionTypeMap() {
-        return CRITERION_TYPE_MAP;
+        ImmutableBiMap.Builder<Criterion.Type, String> builder = ImmutableBiMap.builder();
+        builder.put(Criterion.Type.IN_PORT, "standard_metadata.ingress_port");
+        builder.put(Criterion.Type.ETH_DST, "ethernet.dstAddr");
+        builder.put(Criterion.Type.ETH_SRC, "ethernet.srcAddr");
+        builder.put(Criterion.Type.ETH_TYPE, "ethernet.etherType");
+        return builder.build();
     }
 
     @Override

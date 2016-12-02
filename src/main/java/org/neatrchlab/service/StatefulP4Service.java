@@ -1,5 +1,6 @@
 package org.neatrchlab.service;
 
+import org.onosproject.net.DeviceId;
 import org.onosproject.net.flow.TrafficSelector;
 
 /**
@@ -9,5 +10,6 @@ public interface StatefulP4Service {
 
     public int startService(String service);
     public int stopService(String service);
-    public int bindService(String service, int registerId, TrafficSelector trafficSelector);
+    public DeviceId getDefaultDeviceId();
+    public int bindService(String service, int registerId, TrafficSelector trafficSelector, String outputPort);
 }

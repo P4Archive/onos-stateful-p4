@@ -458,54 +458,8 @@
     "meter_arrays": [],
     "actions": [
         {
-            "name": "_drop",
+            "name": "get_state_with_tcp_flag",
             "id": 0,
-            "runtime_data": [],
-            "primitives": [
-                {
-                    "op": "modify_field",
-                    "parameters": [
-                        {
-                            "type": "field",
-                            "value": [
-                                "standard_metadata",
-                                "egress_spec"
-                            ]
-                        },
-                        {
-                            "type": "hexstr",
-                            "value": "0x1ff"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "name": "send_to_cpu",
-            "id": 1,
-            "runtime_data": [],
-            "primitives": [
-                {
-                    "op": "modify_field",
-                    "parameters": [
-                        {
-                            "type": "field",
-                            "value": [
-                                "standard_metadata",
-                                "egress_spec"
-                            ]
-                        },
-                        {
-                            "type": "hexstr",
-                            "value": "0xff"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "name": "get_state_with_ip_id",
-            "id": 2,
             "runtime_data": [
                 {
                     "name": "target_id",
@@ -582,8 +536,8 @@
                         {
                             "type": "field",
                             "value": [
-                                "ipv4",
-                                "identification"
+                                "tcp",
+                                "ctrl"
                             ]
                         }
                     ]
@@ -591,12 +545,16 @@
             ]
         },
         {
-            "name": "forward",
-            "id": 3,
+            "name": "get_state_with_nothing",
+            "id": 1,
             "runtime_data": [
                 {
-                    "name": "port",
-                    "bitwidth": 9
+                    "name": "target_id",
+                    "bitwidth": 16
+                },
+                {
+                    "name": "register_id",
+                    "bitwidth": 32
                 }
             ],
             "primitives": [
@@ -606,13 +564,99 @@
                         {
                             "type": "field",
                             "value": [
-                                "standard_metadata",
-                                "egress_spec"
+                                "state_metadata",
+                                "target_id"
                             ]
                         },
                         {
                             "type": "runtime_data",
                             "value": 0
+                        }
+                    ]
+                },
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "state_metadata",
+                                "register_id"
+                            ]
+                        },
+                        {
+                            "type": "runtime_data",
+                            "value": 1
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "state_metadata",
+                                "cur_state"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "state_register"
+                        },
+                        {
+                            "type": "runtime_data",
+                            "value": 1
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "alert",
+            "id": 2,
+            "runtime_data": [],
+            "primitives": [
+                {
+                    "op": "drop",
+                    "parameters": []
+                }
+            ]
+        },
+        {
+            "name": "count_packet",
+            "id": 3,
+            "runtime_data": [],
+            "primitives": [
+                {
+                    "op": "count",
+                    "parameters": [
+                        {
+                            "type": "counter_array",
+                            "value": "ingress_port_counter"
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "standard_metadata",
+                                "ingress_port"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "count",
+                    "parameters": [
+                        {
+                            "type": "counter_array",
+                            "value": "egress_port_counter"
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "standard_metadata",
+                                "egress_spec"
+                            ]
                         }
                     ]
                 }
@@ -706,58 +750,8 @@
             ]
         },
         {
-            "name": "count_packet",
-            "id": 5,
-            "runtime_data": [],
-            "primitives": [
-                {
-                    "op": "count",
-                    "parameters": [
-                        {
-                            "type": "counter_array",
-                            "value": "ingress_port_counter"
-                        },
-                        {
-                            "type": "field",
-                            "value": [
-                                "standard_metadata",
-                                "ingress_port"
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "op": "count",
-                    "parameters": [
-                        {
-                            "type": "counter_array",
-                            "value": "egress_port_counter"
-                        },
-                        {
-                            "type": "field",
-                            "value": [
-                                "standard_metadata",
-                                "egress_spec"
-                            ]
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "name": "alert",
-            "id": 6,
-            "runtime_data": [],
-            "primitives": [
-                {
-                    "op": "drop",
-                    "parameters": []
-                }
-            ]
-        },
-        {
             "name": "state_transfer",
-            "id": 7,
+            "id": 5,
             "runtime_data": [
                 {
                     "name": "next_state",
@@ -804,76 +798,8 @@
             ]
         },
         {
-            "name": "get_state_with_nothing",
-            "id": 8,
-            "runtime_data": [
-                {
-                    "name": "target_id",
-                    "bitwidth": 16
-                },
-                {
-                    "name": "register_id",
-                    "bitwidth": 32
-                }
-            ],
-            "primitives": [
-                {
-                    "op": "modify_field",
-                    "parameters": [
-                        {
-                            "type": "field",
-                            "value": [
-                                "state_metadata",
-                                "target_id"
-                            ]
-                        },
-                        {
-                            "type": "runtime_data",
-                            "value": 0
-                        }
-                    ]
-                },
-                {
-                    "op": "modify_field",
-                    "parameters": [
-                        {
-                            "type": "field",
-                            "value": [
-                                "state_metadata",
-                                "register_id"
-                            ]
-                        },
-                        {
-                            "type": "runtime_data",
-                            "value": 1
-                        }
-                    ]
-                },
-                {
-                    "op": "register_read",
-                    "parameters": [
-                        {
-                            "type": "field",
-                            "value": [
-                                "state_metadata",
-                                "cur_state"
-                            ]
-                        },
-                        {
-                            "type": "register_array",
-                            "value": "state_register"
-                        },
-                        {
-                            "type": "runtime_data",
-                            "value": 1
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "name": "get_state_with_tcp_flag",
-            "id": 9,
+            "name": "get_state_with_tcp_src_port",
+            "id": 6,
             "runtime_data": [
                 {
                     "name": "target_id",
@@ -951,8 +877,256 @@
                             "type": "field",
                             "value": [
                                 "tcp",
-                                "ctrl"
+                                "srcPort"
                             ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "get_state_with_tcp_dst_port",
+            "id": 7,
+            "runtime_data": [
+                {
+                    "name": "target_id",
+                    "bitwidth": 16
+                },
+                {
+                    "name": "register_id",
+                    "bitwidth": 32
+                }
+            ],
+            "primitives": [
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "state_metadata",
+                                "target_id"
+                            ]
+                        },
+                        {
+                            "type": "runtime_data",
+                            "value": 0
+                        }
+                    ]
+                },
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "state_metadata",
+                                "register_id"
+                            ]
+                        },
+                        {
+                            "type": "runtime_data",
+                            "value": 1
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "state_metadata",
+                                "cur_state"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "state_register"
+                        },
+                        {
+                            "type": "runtime_data",
+                            "value": 1
+                        }
+                    ]
+                },
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "state_metadata",
+                                "trigger"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "tcp",
+                                "dstPort"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "send_to_cpu",
+            "id": 8,
+            "runtime_data": [],
+            "primitives": [
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "standard_metadata",
+                                "egress_spec"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xff"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "get_state_with_ip_id",
+            "id": 9,
+            "runtime_data": [
+                {
+                    "name": "target_id",
+                    "bitwidth": 16
+                },
+                {
+                    "name": "register_id",
+                    "bitwidth": 32
+                }
+            ],
+            "primitives": [
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "state_metadata",
+                                "target_id"
+                            ]
+                        },
+                        {
+                            "type": "runtime_data",
+                            "value": 0
+                        }
+                    ]
+                },
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "state_metadata",
+                                "register_id"
+                            ]
+                        },
+                        {
+                            "type": "runtime_data",
+                            "value": 1
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "state_metadata",
+                                "cur_state"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "state_register"
+                        },
+                        {
+                            "type": "runtime_data",
+                            "value": 1
+                        }
+                    ]
+                },
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "state_metadata",
+                                "trigger"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ipv4",
+                                "identification"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "forward",
+            "id": 10,
+            "runtime_data": [
+                {
+                    "name": "port",
+                    "bitwidth": 9
+                }
+            ],
+            "primitives": [
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "standard_metadata",
+                                "egress_spec"
+                            ]
+                        },
+                        {
+                            "type": "runtime_data",
+                            "value": 0
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "_drop",
+            "id": 11,
+            "runtime_data": [],
+            "primitives": [
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "standard_metadata",
+                                "egress_spec"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x1ff"
                         }
                     ]
                 }
@@ -997,8 +1171,40 @@
                         {
                             "match_type": "exact",
                             "target": [
-                                "ethernet",
+                                "ipv4",
                                 "dstAddr"
+                            ],
+                            "mask": null
+                        },
+                        {
+                            "match_type": "exact",
+                            "target": [
+                                "ipv4",
+                                "srcAddr"
+                            ],
+                            "mask": null
+                        },
+                        {
+                            "match_type": "exact",
+                            "target": [
+                                "ipv4",
+                                "protocol"
+                            ],
+                            "mask": null
+                        },
+                        {
+                            "match_type": "exact",
+                            "target": [
+                                "tcp",
+                                "srcPort"
+                            ],
+                            "mask": null
+                        },
+                        {
+                            "match_type": "exact",
+                            "target": [
+                                "tcp",
+                                "dstPort"
                             ],
                             "mask": null
                         }
@@ -1019,7 +1225,7 @@
                 {
                     "name": "state_table",
                     "id": 2,
-                    "match_type": "ternary",
+                    "match_type": "exact",
                     "type": "simple",
                     "max_size": 1024,
                     "with_counters": false,
@@ -1027,31 +1233,7 @@
                     "support_timeout": false,
                     "key": [
                         {
-                            "match_type": "ternary",
-                            "target": [
-                                "ethernet",
-                                "dstAddr"
-                            ],
-                            "mask": null
-                        },
-                        {
-                            "match_type": "ternary",
-                            "target": [
-                                "ethernet",
-                                "srcAddr"
-                            ],
-                            "mask": null
-                        },
-                        {
-                            "match_type": "ternary",
-                            "target": [
-                                "ethernet",
-                                "etherType"
-                            ],
-                            "mask": null
-                        },
-                        {
-                            "match_type": "ternary",
+                            "match_type": "exact",
                             "target": [
                                 "ipv4",
                                 "dstAddr"
@@ -1059,7 +1241,7 @@
                             "mask": null
                         },
                         {
-                            "match_type": "ternary",
+                            "match_type": "exact",
                             "target": [
                                 "ipv4",
                                 "srcAddr"
@@ -1067,7 +1249,7 @@
                             "mask": null
                         },
                         {
-                            "match_type": "ternary",
+                            "match_type": "exact",
                             "target": [
                                 "ipv4",
                                 "protocol"
@@ -1075,7 +1257,7 @@
                             "mask": null
                         },
                         {
-                            "match_type": "ternary",
+                            "match_type": "exact",
                             "target": [
                                 "tcp",
                                 "srcPort"
@@ -1083,7 +1265,7 @@
                             "mask": null
                         },
                         {
-                            "match_type": "ternary",
+                            "match_type": "exact",
                             "target": [
                                 "tcp",
                                 "dstPort"
@@ -1093,6 +1275,8 @@
                     ],
                     "actions": [
                         "get_state_with_tcp_flag",
+                        "get_state_with_tcp_src_port",
+                        "get_state_with_tcp_dst_port",
                         "get_state_with_ip_id",
                         "get_state_with_ip_tos",
                         "get_state_with_nothing"

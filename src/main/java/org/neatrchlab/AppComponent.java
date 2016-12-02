@@ -66,12 +66,12 @@ public class AppComponent extends AbstractUpgradableFabricApp implements Statefu
 
     private static final String JSON_CONFIG_PATH = "/stateful.json";
 
-    private static final Bmv2Configuration STATEFUL_CONFIGURATION = loadConfiguration();
+    protected static final Bmv2Configuration STATEFUL_CONFIGURATION = loadConfiguration();
     private static final StatefulP4Interpreter STATEFUL_INTERPRETER = new StatefulP4Interpreter();
     private static final Bmv2DeviceContext STATEFUL_CONTEXT =
             new Bmv2DeviceContext(STATEFUL_CONFIGURATION, STATEFUL_INTERPRETER);
 
-    private DeviceId defaultDeviceId;
+    protected DeviceId defaultDeviceId;
 
     public AppComponent() {
         super(APP_NAME, MODEL_NAME, STATEFUL_CONTEXT);
@@ -83,6 +83,11 @@ public class AppComponent extends AbstractUpgradableFabricApp implements Statefu
         }
         log.info(deviceId.toString());
         return false;
+    }
+
+    @Override
+    public DeviceId getDefaultDeviceId() {
+        return defaultDeviceId;
     }
 
     @Override
@@ -137,6 +142,19 @@ public class AppComponent extends AbstractUpgradableFabricApp implements Statefu
         return Bmv2ExtensionSelector.builder().forConfiguration(STATEFUL_CONFIGURATION)
                 .matchExact(StatefulP4Interpreter.STATE_METADATA, StatefulP4Interpreter.NEXT_STATE, nextState)
                 .build();
+    }
+
+    private void installForward(TrafficSelector trafficSelector, String port) {
+        try {
+            FlowRule rule = flowRuleBuilder(defaultDeviceId, StatefulP4Interpreter.FORWARD_TABLE)
+                    .withSelector(trafficSelector)
+                    .withTreatment(DefaultTrafficTreatment.builder().setOutput(PortNumber.portNumber(port)).build())
+                    .build();
+            installFlowRules(Collections.singleton(rule));
+        } catch (Exception e) {
+
+        }
+
     }
 
     private void installStateTransfer(short targetId, short trigger, byte curState, byte nextState) {
@@ -199,8 +217,40 @@ public class AppComponent extends AbstractUpgradableFabricApp implements Statefu
         ACTION_MAP.put("slb", StatefulP4Interpreter.GET_SATTE_WITH_NOTHING);
     }
 
+    static final byte ACK = 1 << 4;
+    static final byte PSH = 1 << 3;
+    static final byte RST = 1 << 2;
+    static final byte SYN = 1 << 1;
+    static final byte FIN = 1 << 0;
+
+    static final byte TCP_INIT = 0;
+    static final byte TCP_SYN = 1;
+    static final byte TCP_SYN_ACK = 2;
+    static final byte TCP_ESTABLISHED = 3;
+    static final byte TCP_FIRST_FIN = 4;
+    static final byte TCP_HALF_STOP = 5;
+    static final byte TCP_SECOND_FIN = 6;
+    static final byte TCP_STOP = 7;
+
     private void startStatefulFirewallService() {
-        int targetId = TARGET_ID_MAP.get("slb");
+        short targetId = (short) ((int) TARGET_ID_MAP.get("slb"));
+        installStateTransfer(targetId, SYN, TCP_INIT, TCP_SYN);
+        installStateTransfer(targetId, (byte) (SYN & ACK), TCP_SYN, TCP_SYN_ACK);
+        installStateTransfer(targetId, ACK, TCP_SYN_ACK, TCP_ESTABLISHED);
+
+        installStateTransfer(targetId, ACK, TCP_ESTABLISHED, TCP_ESTABLISHED);
+        installStateTransfer(targetId, RST, TCP_ESTABLISHED, TCP_ESTABLISHED);
+        installStateTransfer(targetId, (byte) (RST & ACK), TCP_ESTABLISHED, TCP_ESTABLISHED);
+        installStateTransfer(targetId, (byte) (PSH & ACK), TCP_ESTABLISHED, TCP_ESTABLISHED);
+
+        installStateTransfer(targetId, FIN, TCP_ESTABLISHED, TCP_FIRST_FIN);
+        installStateTransfer(targetId, (byte) (FIN & ACK), TCP_FIRST_FIN, TCP_HALF_STOP);
+
+        installStateTransfer(targetId, FIN, TCP_HALF_STOP, TCP_SECOND_FIN);
+        installStateTransfer(targetId, (byte) (FIN & ACK), TCP_SECOND_FIN, TCP_STOP);
+
+        TrafficTreatment treatment = DefaultTrafficTreatment.emptyTreatment();
+        installAction((byte) 0, treatment);
     }
 
     private void startLoadBalancingService() {
@@ -248,11 +298,15 @@ public class AppComponent extends AbstractUpgradableFabricApp implements Statefu
     }
 
     @Override
-    public int bindService(String service, int registerId, TrafficSelector trafficSelector) {
+    public int bindService(String service, int registerId, TrafficSelector trafficSelector, String outputPort) {
         int targetId = TARGET_ID_MAP.get(service);
         String actionName = ACTION_MAP.get(service);
         try {
             installState(trafficSelector, actionName, targetId, registerId);
+            if (outputPort != null) {
+                installForward(trafficSelector, outputPort);
+            }
+
         } catch (Exception e) {
             return 1;
         }
