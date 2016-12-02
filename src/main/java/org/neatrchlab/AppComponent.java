@@ -233,21 +233,22 @@ public class AppComponent extends AbstractUpgradableFabricApp implements Statefu
     static final byte TCP_STOP = 7;
 
     private void startStatefulFirewallService() {
-        short targetId = (short) ((int) TARGET_ID_MAP.get("slb"));
+        short targetId = (short) ((int) TARGET_ID_MAP.get("sfw"));
         installStateTransfer(targetId, SYN, TCP_INIT, TCP_SYN);
-        installStateTransfer(targetId, (byte) (SYN & ACK), TCP_SYN, TCP_SYN_ACK);
+        installStateTransfer(targetId, SYN, TCP_SYN, TCP_SYN);
+        installStateTransfer(targetId, (byte) (SYN | ACK), TCP_SYN, TCP_SYN_ACK);
         installStateTransfer(targetId, ACK, TCP_SYN_ACK, TCP_ESTABLISHED);
 
         installStateTransfer(targetId, ACK, TCP_ESTABLISHED, TCP_ESTABLISHED);
         installStateTransfer(targetId, RST, TCP_ESTABLISHED, TCP_ESTABLISHED);
-        installStateTransfer(targetId, (byte) (RST & ACK), TCP_ESTABLISHED, TCP_ESTABLISHED);
-        installStateTransfer(targetId, (byte) (PSH & ACK), TCP_ESTABLISHED, TCP_ESTABLISHED);
+        installStateTransfer(targetId, (byte) (RST | ACK), TCP_ESTABLISHED, TCP_ESTABLISHED);
+        installStateTransfer(targetId, (byte) (PSH | ACK), TCP_ESTABLISHED, TCP_ESTABLISHED);
 
         installStateTransfer(targetId, FIN, TCP_ESTABLISHED, TCP_FIRST_FIN);
-        installStateTransfer(targetId, (byte) (FIN & ACK), TCP_FIRST_FIN, TCP_HALF_STOP);
+        installStateTransfer(targetId, (byte) (FIN | ACK), TCP_FIRST_FIN, TCP_HALF_STOP);
 
         installStateTransfer(targetId, FIN, TCP_HALF_STOP, TCP_SECOND_FIN);
-        installStateTransfer(targetId, (byte) (FIN & ACK), TCP_SECOND_FIN, TCP_STOP);
+        installStateTransfer(targetId, (byte) (FIN | ACK), TCP_SECOND_FIN, TCP_STOP);
 
         TrafficTreatment treatment = DefaultTrafficTreatment.emptyTreatment();
         installAction((byte) 0, treatment);

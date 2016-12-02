@@ -84,8 +84,6 @@ public abstract class AbstractUpgradableFabricApp {
 
     private static final Map<String, AbstractUpgradableFabricApp> APP_HANDLES = Maps.newConcurrentMap();
 
-    private static final int NUM_LEAFS = 3;
-    private static final int NUM_SPINES = 3;
     private static final int FLOW_PRIORITY = 100;
 
     private static final int CLEANUP_SLEEP = 2000;

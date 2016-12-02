@@ -42,7 +42,8 @@ public class StatefulP4Command extends AbstractShellCommand {
             required = true, multiValued = false)
     private String operation;
 
-    @Argument(index = 1, name = "service", description = "Stateful data plane service: Sateful Firwall (sfw) and Stateful LoadBalancer (slb)",
+    @Argument(index = 1, name = "service",
+            description = "Stateful data plane service: Sateful Firwall (sfw) and Stateful LoadBalancer (slb)",
             required = true, multiValued = false)
     private String service;
 
@@ -70,6 +71,10 @@ public class StatefulP4Command extends AbstractShellCommand {
             description = "Default output port", required = false, multiValued = false)
     private String port;
 
+    @Option(name = "-r", aliases = "--register_id",
+            description = "Register ID", required = false, multiValued = false)
+    private String regId;
+
     private int getNewRegisterId() {
         return registerId++;
     }
@@ -77,12 +82,18 @@ public class StatefulP4Command extends AbstractShellCommand {
     @Override
     protected void execute() {
         StatefulP4Service p4Service = getService(StatefulP4Service.class);
+
         if (operation.equals(START)) {
             p4Service.startService(service);
         } else if (operation.equals(STOP)) {
             p4Service.stopService(service);
         } else if (operation.equals(BIND)) {
-            p4Service.bindService(service, getNewRegisterId(), getTrafficSelector(), port);
+            if (regId == null) {
+                p4Service.bindService(service, getNewRegisterId(), getTrafficSelector(), port);
+            } else {
+                p4Service.bindService(service, Integer.parseInt(regId), getTrafficSelector(), port);
+            }
+
         } else {
             print(operation + " is not a valid operation");
         }
@@ -98,8 +109,8 @@ public class StatefulP4Command extends AbstractShellCommand {
         extesionBuilder.matchExact("ipv4", "dstAddr", IpAddress.valueOf(ipDst).toOctets());
         extesionBuilder.matchExact("ipv4", "srcAddr", IpAddress.valueOf(ipSrc).toOctets());
         extesionBuilder.matchExact("ipv4", "protocol", Byte.valueOf(ipProto));
-        extesionBuilder.matchExact("tcp", "dstPort", (short) ((int) Integer.parseInt(tcpDst)));
-        extesionBuilder.matchExact("tcp", "srcPort", (short) ((int) Integer.parseInt(tcpSrc)));
+        // extesionBuilder.matchExact("tcp", "dstPort", (short) ((int) Integer.parseInt(tcpDst)));
+        // extesionBuilder.matchExact("tcp", "srcPort", (short) ((int) Integer.parseInt(tcpSrc)));
 
         builder.extension(extesionBuilder.build(), p4Service.getDefaultDeviceId());
 
