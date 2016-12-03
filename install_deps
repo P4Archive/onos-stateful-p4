@@ -1,0 +1,6 @@
+#! /bin/bash
+onos-app 127.0.0.1 install $ONOS_ROOT/providers/bmv2/app/target/onos-bmv2-app-1.8.0-SNAPSHOT.oar
+onos-app 127.0.0.1 install $ONOS_ROOT/drivers/bmv2/target/onos-drivers-bmv2-1.8.0-SNAPSHOT.oar
+
+onos-app 127.0.0.1 activate org.onosproject.bmv2
+onos-app 127.0.0.1 activate org.onosproject.drivers.bmv2
