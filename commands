@@ -1,6 +1,8 @@
-statefulp4 start sfw
-statefulp4 -s 10.0.0.1 -d 10.0.0.2 -p 6 -o 2 -r 3 bind sfw
-statefulp4 -s 10.0.0.2 -d 10.0.0.1 -p 6 -o 1 -r 3 bind sfw
-
 statfulp4 start slb
-statefulp4 -s 10.0.0.1 -d 10.0.0.2 -p 17  bind slb
+statefulp4 -s 10.0.0.1 -d 10.0.0.2 -p 17 -r 0  bind slb
+
+statefulp4 start sfw
+statefulp4 -s 10.0.0.1 -d 10.0.0.2 -p 6 -o 2 -r 1 bind sfw
+statefulp4 -s 10.0.0.2 -d 10.0.0.1 -p 6 -o 1 -r 1 bind sfw
+
+
